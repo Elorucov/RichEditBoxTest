@@ -5,10 +5,15 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Core;
+using Windows.Devices.Display.Core;
+using Windows.Devices.Input;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Foundation.Metadata;
+using Windows.Graphics.Display;
 using Windows.UI;
 using Windows.UI.Popups;
 using Windows.UI.Text;
@@ -34,43 +39,76 @@ namespace RichEditBoxTest
         {
             this.InitializeComponent();
             reb.Document.SetText(TextSetOptions.None, "The quick brown fox.");
+
+            AddHandler(RichEditBox.PointerPressedEvent, new PointerEventHandler(OnPointerPressed), true);
+            AddHandler(RichEditBox.PointerReleasedEvent, new PointerEventHandler(OnPointerReleased), true);
+            AddHandler(RichEditBox.ManipulationStartedEvent, new ManipulationStartedEventHandler(OnManipulationStarted), true);
+            AddHandler(RichEditBox.ManipulationCompletedEvent, new ManipulationCompletedEventHandler(OnManipulationCompleted), true);
+            AddHandler(RichEditBox.PointerCaptureLostEvent, new PointerEventHandler(OnPointerCaptureLost), true);
+
+            CoreApplication.GetCurrentView().CoreWindow.PointerPressed += CoreWindow_PointerPressed;
+            CoreApplication.GetCurrentView().CoreWindow.PointerReleased += CoreWindow_PointerReleased;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) {
-            reb.Document.GetText(TextGetOptions.None, out string value);
+        StringBuilder _sb = new StringBuilder();
 
-            value = value.TrimEnd('\v', '\r');
-
-            for (int i = 0; i < value.Length; i++) {
-                var range = reb.Document.GetRange(i, i + 1);
-                var spaceAfter = range.ParagraphFormat.SpaceAfter;
-                var text = range.Text;
-
-                ITextCharacterFormat cf = range.CharacterFormat;
-                var bold = cf.Bold == FormatEffect.On;
-                var italic = cf.Italic == FormatEffect.On;
-                var underline = cf.Underline == UnderlineType.Single;
-                var fg = cf.ForegroundColor;
-
-                var link = range.Link;
-
-                int j = 0;
-            }
+        private void Debug(string line) {
+            _sb.Insert(0, $"\n");
+            _sb.Insert(0, line);
+            dbg.Text = _sb.ToString();
         }
 
-        private void Button2_Click(object sender, RoutedEventArgs e) {
-            reb.Document.BatchDisplayUpdates();
+        private void reb_SelectionChanged(object sender, RoutedEventArgs e) {
+            var sel = reb.Document.Selection;
+            Debug($"SelectionChanged {sel.StartPosition}, {sel.EndPosition}, {sel.Length}");
+        }
 
-            reb.Document.SetText(TextSetOptions.None, "And link!");
-            var range = reb.Document.GetRange(4, 8);
-            range.CharacterFormat = reb.Document.GetDefaultCharacterFormat();
-            range.CharacterFormat.BackgroundColor = Color.FromArgb(48, 0, 122, 204);
-            range.CharacterFormat.Underline = UnderlineType.None;
-            var fc = range.CharacterFormat.ForegroundColor;
-            range.Link = "\"http://www.msn.com\"";
+        private void OnContextRequested(UIElement sender, ContextRequestedEventArgs args) {
+            Debug($"ContextRequested");
+        }
 
-            reb.Document.Selection.SetRange(range.EndPosition, range.EndPosition);
-            reb.Document.ApplyDisplayUpdates();
+        private void OnHolding(object sender, HoldingRoutedEventArgs e) {
+            Debug($"Holding {e.HoldingState}");
+        }
+
+        private void OnManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e) {
+            Debug($"ManipulationCompleted {e.PointerDeviceType}");
+        }
+
+        private void OnManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e) {
+            Debug($"ManipulationStarted {e.PointerDeviceType}");
+        }
+
+        private void OnPointerPressed(object sender, PointerRoutedEventArgs e) {
+            Debug($"PointerPressed {e.Pointer.PointerDeviceType}");
+        }
+
+        private void OnPointerReleased(object sender, PointerRoutedEventArgs e) {
+            Debug($"PointerReleased {e.Pointer.PointerDeviceType}");
+        }
+
+        private void OnTapped(object sender, TappedRoutedEventArgs e) {
+            Debug($"Tapped {e.PointerDeviceType}");
+        }
+
+        private void OnPointerCaptureLost(object sender, PointerRoutedEventArgs e) {
+            Debug($"PointerCaptureLost {e.Pointer.PointerDeviceType}");
+        }
+
+        private void Gr_ManipulationStarted(Windows.UI.Input.GestureRecognizer sender, Windows.UI.Input.ManipulationStartedEventArgs args) {
+            Debug($"GR ManipulationStarted {args.PointerDeviceType}");
+        }
+
+        private void Gr_ManipulationCompleted(Windows.UI.Input.GestureRecognizer sender, Windows.UI.Input.ManipulationCompletedEventArgs args) {
+            Debug($"GR ManipulationCompleted {args.PointerDeviceType}");
+        }
+
+        private void CoreWindow_PointerPressed(Windows.UI.Core.CoreWindow sender, Windows.UI.Core.PointerEventArgs args) {
+            Debug($"CW PointerPressed {args.CurrentPoint.PointerDevice.PointerDeviceType}");
+        }
+
+        private void CoreWindow_PointerReleased(Windows.UI.Core.CoreWindow sender, Windows.UI.Core.PointerEventArgs args) {
+            Debug($"CW PointerReleased {args.CurrentPoint.PointerDevice.PointerDeviceType}");
         }
     }
 }

@@ -7,9 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Devices.Input;
 using Windows.Foundation;
 using Windows.Foundation.Metadata;
 using Windows.UI;
+using Windows.UI.Core;
 using Windows.UI.Text;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -48,6 +50,9 @@ namespace RichEditBoxTest {
         bool _canCloseFlyoutIfLostFocus = true;
         ITextSelection _textSelection;
         PointerEventHandler pointerEventHandler;
+        PointerDeviceType _pointerDeviceType;
+
+        private CoreWindow ParentWindow => CoreApplication.GetCurrentView().CoreWindow;
 
         private void SimpleRichEditBox_Loaded(object sender, RoutedEventArgs e) {
             Setup();
@@ -107,6 +112,8 @@ namespace RichEditBoxTest {
             CoreApplication.GetCurrentView().CoreWindow.PointerPressed += CoreWindow_PointerPressed;
             _root.PointerEntered += FlyoutRoot_PointerEntered;
             _root.PointerExited += FlyoutRoot_PointerExited;
+            ParentWindow.PointerReleased += Window_PointerReleased;
+
             pointerEventHandler = new PointerEventHandler(OnPointerReleased);
             AddHandler(RichEditBox.PointerReleasedEvent, pointerEventHandler, true);
         }
@@ -138,19 +145,22 @@ namespace RichEditBoxTest {
             CoreApplication.GetCurrentView().CoreWindow.PointerPressed -= CoreWindow_PointerPressed;
             _root.PointerEntered -= FlyoutRoot_PointerEntered;
             _root.PointerExited -= FlyoutRoot_PointerExited;
+            ParentWindow.PointerReleased -= Window_PointerReleased; 
             RemoveHandler(RichEditBox.PointerReleasedEvent, pointerEventHandler);
 
             Loaded -= SimpleRichEditBox_Loaded;
             Unloaded -= SimpleRichEditBox_Unloaded;
         }
 
-        private void OnPointerReleased(object sender, PointerRoutedEventArgs e) {
-            if (Document.Selection.Length != 0) {
-                var position = e.GetCurrentPoint(Window.Current.Content).Position;
-                ShowFlyout(position);
-            } else {
-                if (_popup != null) _popup.IsOpen = false;
+        private void Window_PointerReleased(CoreWindow sender, PointerEventArgs args) {
+            if (Document.Selection.Length != 0 && FocusState != FocusState.Unfocused) {
+                var position = args.CurrentPoint.Position;
+                ShowFlyout(position, args.CurrentPoint.PointerDevice.PointerDeviceType == PointerDeviceType.Touch);
             }
+        }
+
+        private void OnPointerReleased(object sender, PointerRoutedEventArgs e) {
+            if (Document.Selection.Length == 0 && _popup != null) _popup.IsOpen = false;
         }
 
         // to avoid displaying system popup on old versions of Win10.
@@ -161,7 +171,7 @@ namespace RichEditBoxTest {
         private void SimpleRichEditBox_ContextRequested(UIElement sender, ContextRequestedEventArgs args) {
             args.Handled = true;
             args.TryGetPosition(Window.Current.Content, out Point position);
-            ShowFlyout(position, true);
+            ShowFlyout(position, false, true);
         }
 
         private void SimpleRichEditBox_GotFocus(object sender, RoutedEventArgs e) {
@@ -302,7 +312,7 @@ namespace RichEditBoxTest {
             }
         }
 
-        private void ShowFlyout(Point position, bool extended = false) {
+        private void ShowFlyout(Point position, bool fixTouch = false, bool extended = false) {
             if (!extended && _popup.IsOpen) return;
 
             // Formatting
@@ -339,8 +349,8 @@ namespace RichEditBoxTest {
             var fw = size.Width;
             var fh = size.Height;
 
-            double left = position.X - (fw / 2);
-            double top = position.Y - 24 - fh;
+            double left = Math.Min(Window.Current.Bounds.Width - fw, Math.Max(0, position.X - (fw / 2)));
+            double top = Math.Max(0, position.Y - (fixTouch ? 72 : 36) - fh);
 
             _popup.RenderTransform = new CompositeTransform {
                 TranslateX = left,

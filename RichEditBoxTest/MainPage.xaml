@@ -11,10 +11,11 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
+        <ScrollViewer Width="320" Height="240" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <TextBlock x:Name="dbg" FontFamily="Lucida Console" FontSize="12"/>
+        </ScrollViewer>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <local:SimpleRichEditBox x:Name="reb" Width="320"/>
-            <Button Margin="0,12,0,0" HorizontalAlignment="Center" Content="Check" Click="Button_Click"/>
-            <Button Margin="0,12,0,0" HorizontalAlignment="Center" Content="Add link" Click="Button2_Click"/>
+            <local:SimpleRichEditBox x:Name="reb" Width="320" SelectionChanged="reb_SelectionChanged" ContextRequested="OnContextRequested" Holding="OnHolding" ManipulationCompleted="OnManipulationCompleted" ManipulationStarted="OnManipulationStarted" PointerPressed="OnPointerPressed" PointerReleased="OnPointerReleased" Tapped="OnTapped"/>
         </StackPanel>
     </Grid>
 </Page>
