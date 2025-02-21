@@ -23,7 +23,6 @@ namespace RichEditBoxTest {
         public SimpleRichEditBox() {
             Loaded += SimpleRichEditBox_Loaded;
             Unloaded += SimpleRichEditBox_Unloaded;
-            
         }
 
         const string FlyoutXaml = "<StackPanel xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" Background=\"{ThemeResource SolidBackgroundFillColorBaseBrush}\" BorderBrush=\"{ThemeResource SurfaceStrokeColorFlyoutBrush}\" BorderThickness=\"1\" CornerRadius=\"{StaticResource OverlayCornerRadius}\" Padding=\"6\" HorizontalAlignment=\"Center\" VerticalAlignment=\"Center\"><StackPanel.Resources><SolidColorBrush x:Key=\"ButtonBackgroundDisabled\" Color=\"Transparent\" /><SolidColorBrush x:Key=\"ToggleButtonBackgroundDisabled\" Color=\"Transparent\" /><Style TargetType=\"Button\" BasedOn=\"{StaticResource DefaultButtonStyle}\"><Setter Property=\"Width\" Value=\"42\"/><Setter Property=\"Height\" Value=\"42\"/><Setter Property=\"Padding\" Value=\"0\"/><Setter Property=\"HorizontalContentAlignment\" Value=\"Center\"/><Setter Property=\"VerticalContentAlignment\" Value=\"Center\"/><Setter Property=\"Background\" Value=\"Transparent\"/><Setter Property=\"BorderBrush\" Value=\"Transparent\"/><Setter Property=\"BorderThickness\" Value=\"0\"/></Style><Style TargetType=\"ToggleButton\" BasedOn=\"{StaticResource DefaultToggleButtonStyle}\"><Setter Property=\"Width\" Value=\"42\"/><Setter Property=\"Height\" Value=\"42\"/><Setter Property=\"Padding\" Value=\"0\"/><Setter Property=\"HorizontalContentAlignment\" Value=\"Center\"/><Setter Property=\"VerticalContentAlignment\" Value=\"Center\"/><Setter Property=\"Background\" Value=\"Transparent\"/><Setter Property=\"BorderBrush\" Value=\"Transparent\"/><Setter Property=\"BorderThickness\" Value=\"0\"/></Style><Style TargetType=\"FontIcon\"><Setter Property=\"FontSize\" Value=\"16\"/></Style></StackPanel.Resources></StackPanel>";
@@ -51,13 +50,13 @@ namespace RichEditBoxTest {
         PointerEventHandler pointerEventHandler;
 
         private void SimpleRichEditBox_Loaded(object sender, RoutedEventArgs e) {
-            Paste += SimpleRichEditBox_Paste;
-            SelectionChanged += SimpleRichEditBox_SelectionChanged;
-
             Setup();
         }
 
         private void Setup() {
+            Paste += SimpleRichEditBox_Paste;
+            SelectionChanged += SimpleRichEditBox_SelectionChanged;
+
             _boldTB = GenerateToggleButton("", "Bold", "B");
             _boldTB.Checked += BoldTB_Checked;
             _boldTB.Unchecked += BoldTB_Unchecked;
@@ -102,6 +101,7 @@ namespace RichEditBoxTest {
             ContextFlyout = null;
 
             ContextMenuOpening += OnContextMenuOpening;
+            ContextRequested += SimpleRichEditBox_ContextRequested;
             GotFocus += SimpleRichEditBox_GotFocus;
             LostFocus += SimpleRichEditBox_LostFocus;
             CoreApplication.GetCurrentView().CoreWindow.PointerPressed += CoreWindow_PointerPressed;
@@ -132,6 +132,7 @@ namespace RichEditBoxTest {
             _linkB2.Click -= LinkTB_Click;
 
             ContextMenuOpening -= OnContextMenuOpening;
+            ContextRequested -= SimpleRichEditBox_ContextRequested;
             GotFocus -= SimpleRichEditBox_GotFocus;
             LostFocus -= SimpleRichEditBox_LostFocus;
             CoreApplication.GetCurrentView().CoreWindow.PointerPressed -= CoreWindow_PointerPressed;
@@ -152,9 +153,15 @@ namespace RichEditBoxTest {
             }
         }
 
+        // to avoid displaying system popup on old versions of Win10.
         private void OnContextMenuOpening(object sender, ContextMenuEventArgs e) {
-            e.Handled = true; // to avoid displaying system popup on old versions of Win10.
-            ShowFlyout(new Point(e.CursorLeft, e.CursorTop), true);
+            e.Handled = true; 
+        }
+
+        private void SimpleRichEditBox_ContextRequested(UIElement sender, ContextRequestedEventArgs args) {
+            args.Handled = true;
+            args.TryGetPosition(Window.Current.Content, out Point position);
+            ShowFlyout(position, true);
         }
 
         private void SimpleRichEditBox_GotFocus(object sender, RoutedEventArgs e) {
@@ -185,7 +192,7 @@ namespace RichEditBoxTest {
             new Action(async () => await TryPasteAsync(e))();
         }
 
-        private void SimpleRichEditBox_SelectionChanged(object sender, RoutedEventArgs e) {
+        private void SimpleRichEditBox_SelectionChanged(object sender, RoutedEventArgs args) {
             _textSelection = Document.Selection;
             _mainRow.Visibility = _textSelection.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
@@ -296,6 +303,8 @@ namespace RichEditBoxTest {
         }
 
         private void ShowFlyout(Point position, bool extended = false) {
+            if (!extended && _popup.IsOpen) return;
+
             // Formatting
             if (_textSelection != null && _textSelection.Length != 0) {
                 var format = _textSelection.CharacterFormat;

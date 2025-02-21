@@ -33,6 +33,7 @@ namespace RichEditBoxTest
         public MainPage()
         {
             this.InitializeComponent();
+            reb.Document.SetText(TextSetOptions.None, "The quick brown fox.");
         }
 
         private void Button_Click(object sender, RoutedEventArgs e) {
