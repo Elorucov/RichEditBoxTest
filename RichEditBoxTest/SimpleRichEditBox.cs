@@ -19,6 +19,7 @@ using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Markup;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Shapes;
 
 namespace RichEditBoxTest {
     class SimpleRichEditBox : RichEditBox {
@@ -205,6 +206,7 @@ namespace RichEditBoxTest {
         private void SimpleRichEditBox_SelectionChanged(object sender, RoutedEventArgs args) {
             _textSelection = Document.Selection;
             _mainRow.Visibility = _textSelection.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+            _linkB2.Visibility = _textSelection.Length == 0 && !string.IsNullOrEmpty(_textSelection.Link) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void BoldTB_Checked(object sender, RoutedEventArgs e) {
