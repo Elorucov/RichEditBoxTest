@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -109,6 +110,33 @@ namespace RichEditBoxTest
 
         private void CoreWindow_PointerReleased(Windows.UI.Core.CoreWindow sender, Windows.UI.Core.PointerEventArgs args) {
             Debug($"CW PointerReleased {args.CurrentPoint.PointerDevice.PointerDeviceType}");
+        }
+
+        //private void Button_Click(object sender, RoutedEventArgs e) {
+        //    reb.Document.GetText(TextGetOptions.AdjustCrlf, out string dump);
+        //    var range = reb.Document.GetRange(0, dump.Length);
+
+        //    reb2.Document.SetText(TextSetOptions.None, dump);
+        //    var range2 = reb2.Document.GetRange(0, dump.Length);
+        //    range2.FormattedText = range.FormattedText;
+        //}
+
+        private void ToFormatData(object sender, RoutedEventArgs e) {
+            var formatData = TextFormatConverter.ToVKFormat(reb.Document);
+            fd.Text = JsonConvert.SerializeObject(formatData, Formatting.Indented, new JsonSerializerSettings { 
+                NullValueHandling = NullValueHandling.Ignore
+            });
+        }
+
+        private void FromFormatData(object sender, RoutedEventArgs e) {
+            new Action(async () => {
+                try {
+                    var formatData = JsonConvert.DeserializeObject<MessageFormatData>(fd.Text);
+                    TextFormatConverter.FromVKFormat(reb.Document, formatData);
+                } catch (Exception ex) {
+                    await new MessageDialog(ex.Message, "Error").ShowAsync();
+                }
+            })();
         }
     }
 }

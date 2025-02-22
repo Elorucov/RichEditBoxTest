@@ -10,12 +10,28 @@
     muxc:BackdropMaterial.ApplyToRootOrPageBackground="True"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid>
-        <ScrollViewer Width="320" Height="240" HorizontalAlignment="Left" VerticalAlignment="Top">
+    <Grid Margin="6">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <ScrollViewer Grid.ColumnSpan="2" Grid.RowSpan="2" Visibility="Collapsed" Width="320" Height="240" HorizontalAlignment="Left" VerticalAlignment="Top">
             <TextBlock x:Name="dbg" FontFamily="Lucida Console" FontSize="12"/>
         </ScrollViewer>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!--<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
             <local:SimpleRichEditBox x:Name="reb" Width="320" SelectionChanged="reb_SelectionChanged" ContextRequested="OnContextRequested" Holding="OnHolding" ManipulationCompleted="OnManipulationCompleted" ManipulationStarted="OnManipulationStarted" PointerPressed="OnPointerPressed" PointerReleased="OnPointerReleased" Tapped="OnTapped"/>
+            <local:SimpleRichEditBox x:Name="reb2" Width="320" Margin="0,12,0,0"/>
+            <Button Margin="0,12,0,0" Content="Copy from 1 to 2" Click="Button_Click"/>
+        </StackPanel>-->
+        <local:SimpleRichEditBox x:Name="reb" Grid.ColumnSpan="2" Margin="6" SelectionChanged="reb_SelectionChanged" ContextRequested="OnContextRequested" Holding="OnHolding" ManipulationCompleted="OnManipulationCompleted" ManipulationStarted="OnManipulationStarted" PointerPressed="OnPointerPressed" PointerReleased="OnPointerReleased" Tapped="OnTapped"/>
+        <TextBox x:Name="fd" Grid.Row="1" Margin="6" TextWrapping="Wrap" FontFamily="Lucida Console" FontSize="12" PlaceholderText="Format data"/>
+        <StackPanel Grid.Column="1" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Button Margin="6" Content="Generate FormatData" Click="ToFormatData"/>
+            <Button Margin="6" Content="Apply FormatData" Click="FromFormatData"/>
         </StackPanel>
     </Grid>
 </Page>
