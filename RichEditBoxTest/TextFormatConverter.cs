@@ -2,19 +2,32 @@
 using System.Collections.Generic;
 using Windows.UI.Text;
 using Windows.UI;
+using System.Diagnostics;
+using Windows.UI.Xaml.Documents;
 
 namespace RichEditBoxTest
 {
     class TextFormatConverter {
+        struct FormatInfo {
+            public string Type;
+            public int Offset;
+            public int Length;
+            public string Url;
+        }
+
+
         // From VK's MessageFormat to Windows' format
         public static void FromVKFormat(ITextDocument document, MessageFormatData format) {
             if (format == null) return;
+            document.BatchDisplayUpdates();
             document.GetText(TextGetOptions.AdjustCrlf | TextGetOptions.NoHidden, out string text);
+            document.Selection.CharacterFormat = document.GetDefaultCharacterFormat();
             document.SetText(TextSetOptions.None, text);
             var textLength = text.Length;
             foreach (var item in format.Items) {
                 SetFormatByItem(document, item, textLength);
             }
+            document.ApplyDisplayUpdates();
         }
 
         private static void SetFormatByItem(ITextDocument document, MessageFormatDataItem item, int maxLength) {
@@ -23,6 +36,8 @@ namespace RichEditBoxTest
 
             var range = document.GetRange(start, end);
             var format = range.CharacterFormat;
+            var u = format.Underline;
+
             switch (item.Type) {
                 case MessageFormatDataTypes.BOLD:
                     format.Bold = FormatEffect.On;
@@ -36,7 +51,7 @@ namespace RichEditBoxTest
                 case MessageFormatDataTypes.LINK:
                     range.Link = $"\"{item.Url}\"";
                     format.ForegroundColor = Color.FromArgb(255, 0, 122, 204);
-                    format.Outline = FormatEffect.On;
+                    format.Underline = UnderlineType.None;
                     break;
             }
         }
@@ -49,58 +64,90 @@ namespace RichEditBoxTest
             };
             data.Items.Clear();
 
-            document.GetText(TextGetOptions.AdjustCrlf | TextGetOptions.NoHidden, out string text);
+            document.GetText(TextGetOptions.AdjustCrlf, out string text);
             int length = text.Length;
+            int hidden = 0;
 
-            data.Items.AddRange(GetItemsByType(document, length, f => f.Bold == FormatEffect.On, TextRangeUnit.Bold, MessageFormatDataTypes.BOLD));
-            data.Items.AddRange(GetItemsByType(document, length, f => f.Italic == FormatEffect.On, TextRangeUnit.Italic, MessageFormatDataTypes.ITALIC));
-            data.Items.AddRange(GetItemsByType(document, length, f => f.Underline == UnderlineType.Single, TextRangeUnit.Underline, MessageFormatDataTypes.UNDERLINE));
-            data.Items.AddRange(GetLinks(document, length));
+            // type, offset, length
+            FormatInfo bold = new FormatInfo { Type = MessageFormatDataTypes.BOLD, Offset = 0, Length = 0 };
+            FormatInfo italic = new FormatInfo { Type = MessageFormatDataTypes.ITALIC, Offset = 0, Length = 0 };
+            FormatInfo underline = new FormatInfo { Type = MessageFormatDataTypes.UNDERLINE, Offset = 0, Length = 0 };
+            FormatInfo link = new FormatInfo { Type = MessageFormatDataTypes.LINK, Offset = 0, Length = 0 };
+
+            for (int i = 0; i < length; i++) {
+                var range = document.GetRange(i, i + 1);
+                if (range.CharacterFormat.Hidden == FormatEffect.On) {
+                    range.Expand(TextRangeUnit.Hidden);
+                    hidden += range.Length;
+                    i += range.Length - 1;
+                    continue;
+                }
+
+                var format = range.CharacterFormat;
+                CheckTextFormat(i - hidden, format.Bold, ref bold, data.Items);
+                CheckTextFormat(i - hidden, format.Italic, ref italic, data.Items);
+                CheckTextFormatUnderline(i - hidden, format.Underline, ref underline, data.Items);
+                CheckTextFormatLink(i - hidden, range.Link, ref link, data.Items);
+            }
 
             return data;
         }
 
-        private static List<MessageFormatDataItem> GetItemsByType(ITextDocument document, int length, Predicate<ITextCharacterFormat> condition, TextRangeUnit textRangeUnit, string itemType) {
-            List<MessageFormatDataItem> items = new List<MessageFormatDataItem>();
-            for (int i = 0; i < length; i++) {
-                var range = document.GetRange(i, i + 1);
-                var format = range.CharacterFormat;
-                var clone = range.GetClone();
-                if (condition(format)) {
-                    int expanded = clone.Expand(textRangeUnit);
-                    int rangeLength = expanded + 1;
-                    items.Add(new MessageFormatDataItem {
-                        Type = itemType,
-                        Offset = i,
-                        Length = rangeLength
-                    });
-                    i += rangeLength;
+        private static void CheckTextFormat(int offset, FormatEffect effect, ref FormatInfo formatInfo, List<MessageFormatDataItem> items) {
+            if (effect == FormatEffect.On) {
+                if (formatInfo.Length > 0) {
+                    formatInfo.Length++;
+                } else {
+                    formatInfo.Offset = offset;
+                    formatInfo.Length = 1;
                 }
+            } else if (effect == FormatEffect.Off && formatInfo.Length > 0) {
+                items.Add(new MessageFormatDataItem {
+                    Type = formatInfo.Type,
+                    Offset = formatInfo.Offset,
+                    Length = formatInfo.Length
+                });
+                formatInfo.Length = 0;
             }
-            return items;
         }
 
-        private static List<MessageFormatDataItem> GetLinks(ITextDocument document, int length) {
-            List<MessageFormatDataItem> items = new List<MessageFormatDataItem>();
-            for (int i = 0; i < length; i++) {
-                var range = document.GetRange(i, i + 1);
-                var format = range.CharacterFormat;
-                var clone = range.GetClone();
-                clone.StartOf(TextRangeUnit.Link, true);
-                if (!string.IsNullOrEmpty(clone.Link)) {
-                    range.Expand(TextRangeUnit.Link);
-                    range.GetText(TextGetOptions.NoHidden, out string text);
-                    int rangeLength = text.Length;
-                    items.Add(new MessageFormatDataItem {
-                        Type = MessageFormatDataTypes.LINK,
-                        Offset = i,
-                        Length = rangeLength,
-                        Url = range.Link.Trim('"')
-                    });
-                    i += rangeLength;
+        private static void CheckTextFormatUnderline(int offset, UnderlineType effect, ref FormatInfo formatInfo, List<MessageFormatDataItem> items) {
+            if (effect == UnderlineType.Single) {
+                if (formatInfo.Length > 0) {
+                    formatInfo.Length++;
+                } else {
+                    formatInfo.Offset = offset;
+                    formatInfo.Length = 1;
                 }
+            } else if (effect != UnderlineType.Single && formatInfo.Length > 0) {
+                items.Add(new MessageFormatDataItem {
+                    Type = formatInfo.Type,
+                    Offset = formatInfo.Offset,
+                    Length = formatInfo.Length
+                });
+                formatInfo.Length = 0;
             }
-            return items;
+        }
+
+        private static void CheckTextFormatLink(int offset, string link, ref FormatInfo formatInfo, List<MessageFormatDataItem> items) {
+            if (!string.IsNullOrEmpty(link)) {
+                if (formatInfo.Length > 0) {
+                    formatInfo.Length++;
+                } else {
+                    formatInfo.Offset = offset;
+                    formatInfo.Length = 1;
+                    formatInfo.Url = link.Trim('"');
+                }
+            } else if (link != formatInfo.Url && formatInfo.Length > 0) {
+                items.Add(new MessageFormatDataItem {
+                    Type = formatInfo.Type,
+                    Offset = formatInfo.Offset,
+                    Length = formatInfo.Length,
+                    Url = formatInfo.Url,
+                });
+                formatInfo.Length = 0;
+                formatInfo.Url = null;
+            }
         }
 
         public static void CloneTextWithFormat(ITextDocument first, ITextDocument second) {
