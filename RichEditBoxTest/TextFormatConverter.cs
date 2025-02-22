@@ -83,16 +83,17 @@ namespace RichEditBoxTest
                 }
 
                 var format = range.CharacterFormat;
-                CheckTextFormat(i - hidden, format.Bold, ref bold, data.Items);
-                CheckTextFormat(i - hidden, format.Italic, ref italic, data.Items);
-                CheckTextFormatUnderline(i - hidden, format.Underline, ref underline, data.Items);
-                CheckTextFormatLink(i - hidden, range.Link, ref link, data.Items);
+                bool last = length - 1 == i;
+                CheckTextFormat(i - hidden, format.Bold, ref bold, data.Items, last);
+                CheckTextFormat(i - hidden, format.Italic, ref italic, data.Items, last);
+                CheckTextFormatUnderline(i - hidden, format.Underline, ref underline, data.Items, last);
+                CheckTextFormatLink(i - hidden, range.Link, ref link, data.Items, last);
             }
 
             return data;
         }
 
-        private static void CheckTextFormat(int offset, FormatEffect effect, ref FormatInfo formatInfo, List<MessageFormatDataItem> items) {
+        private static void CheckTextFormat(int offset, FormatEffect effect, ref FormatInfo formatInfo, List<MessageFormatDataItem> items, bool last) {
             if (effect == FormatEffect.On) {
                 if (formatInfo.Length > 0) {
                     formatInfo.Length++;
@@ -100,7 +101,7 @@ namespace RichEditBoxTest
                     formatInfo.Offset = offset;
                     formatInfo.Length = 1;
                 }
-            } else if (effect == FormatEffect.Off && formatInfo.Length > 0) {
+            } else if (last || (effect == FormatEffect.Off && formatInfo.Length > 0)) {
                 items.Add(new MessageFormatDataItem {
                     Type = formatInfo.Type,
                     Offset = formatInfo.Offset,
@@ -110,7 +111,7 @@ namespace RichEditBoxTest
             }
         }
 
-        private static void CheckTextFormatUnderline(int offset, UnderlineType effect, ref FormatInfo formatInfo, List<MessageFormatDataItem> items) {
+        private static void CheckTextFormatUnderline(int offset, UnderlineType effect, ref FormatInfo formatInfo, List<MessageFormatDataItem> items, bool last) {
             if (effect == UnderlineType.Single) {
                 if (formatInfo.Length > 0) {
                     formatInfo.Length++;
@@ -118,7 +119,7 @@ namespace RichEditBoxTest
                     formatInfo.Offset = offset;
                     formatInfo.Length = 1;
                 }
-            } else if (effect != UnderlineType.Single && formatInfo.Length > 0) {
+            } else if (last || (effect != UnderlineType.Single && formatInfo.Length > 0)) {
                 items.Add(new MessageFormatDataItem {
                     Type = formatInfo.Type,
                     Offset = formatInfo.Offset,
@@ -128,7 +129,7 @@ namespace RichEditBoxTest
             }
         }
 
-        private static void CheckTextFormatLink(int offset, string link, ref FormatInfo formatInfo, List<MessageFormatDataItem> items) {
+        private static void CheckTextFormatLink(int offset, string link, ref FormatInfo formatInfo, List<MessageFormatDataItem> items, bool last) {
             if (!string.IsNullOrEmpty(link)) {
                 if (formatInfo.Length > 0) {
                     formatInfo.Length++;
@@ -137,7 +138,7 @@ namespace RichEditBoxTest
                     formatInfo.Length = 1;
                     formatInfo.Url = link.Trim('"');
                 }
-            } else if (link != formatInfo.Url && formatInfo.Length > 0) {
+            } else if (last || (link != formatInfo.Url && formatInfo.Length > 0)) {
                 items.Add(new MessageFormatDataItem {
                     Type = formatInfo.Type,
                     Offset = formatInfo.Offset,
