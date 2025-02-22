@@ -22,7 +22,7 @@ namespace RichEditBoxTest
             document.BatchDisplayUpdates();
             document.GetText(TextGetOptions.AdjustCrlf | TextGetOptions.NoHidden, out string text);
             document.Selection.CharacterFormat = document.GetDefaultCharacterFormat();
-            document.SetText(TextSetOptions.None, text);
+            document.SetText(TextSetOptions.None | TextSetOptions.ApplyRtfDocumentDefaults, text);
             var textLength = text.Length;
             foreach (var item in format.Items) {
                 SetFormatByItem(document, item, textLength);
@@ -68,7 +68,6 @@ namespace RichEditBoxTest
             int length = text.Length;
             int hidden = 0;
 
-            // type, offset, length
             FormatInfo bold = new FormatInfo { Type = MessageFormatDataTypes.BOLD, Offset = 0, Length = 0 };
             FormatInfo italic = new FormatInfo { Type = MessageFormatDataTypes.ITALIC, Offset = 0, Length = 0 };
             FormatInfo underline = new FormatInfo { Type = MessageFormatDataTypes.UNDERLINE, Offset = 0, Length = 0 };
