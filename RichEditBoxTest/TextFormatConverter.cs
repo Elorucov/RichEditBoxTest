@@ -36,7 +36,7 @@ namespace RichEditBoxTest
                 case MessageFormatDataTypes.LINK:
                     range.Link = $"\"{item.Url}\"";
                     format.ForegroundColor = Color.FromArgb(255, 0, 122, 204);
-                    format.Underline = UnderlineType.None;
+                    format.Outline = FormatEffect.On;
                     break;
             }
         }
@@ -49,8 +49,8 @@ namespace RichEditBoxTest
             };
             data.Items.Clear();
 
-            document.GetText(TextGetOptions.None, out string text);
-            int length = text.TrimEnd('\v', '\r').Length;
+            document.GetText(TextGetOptions.AdjustCrlf | TextGetOptions.NoHidden, out string text);
+            int length = text.Length;
 
             data.Items.AddRange(GetItemsByType(document, length, f => f.Bold == FormatEffect.On, TextRangeUnit.Bold, MessageFormatDataTypes.BOLD));
             data.Items.AddRange(GetItemsByType(document, length, f => f.Italic == FormatEffect.On, TextRangeUnit.Italic, MessageFormatDataTypes.ITALIC));
@@ -86,9 +86,11 @@ namespace RichEditBoxTest
                 var range = document.GetRange(i, i + 1);
                 var format = range.CharacterFormat;
                 var clone = range.GetClone();
-                if (!string.IsNullOrEmpty(range.Link)) {
-                    int expanded = clone.Expand(TextRangeUnit.Link);
-                    int rangeLength = expanded + 1;
+                clone.StartOf(TextRangeUnit.Link, true);
+                if (!string.IsNullOrEmpty(clone.Link)) {
+                    range.Expand(TextRangeUnit.Link);
+                    range.GetText(TextGetOptions.NoHidden, out string text);
+                    int rangeLength = text.Length;
                     items.Add(new MessageFormatDataItem {
                         Type = MessageFormatDataTypes.LINK,
                         Offset = i,

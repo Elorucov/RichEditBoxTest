@@ -44,6 +44,7 @@ namespace RichEditBoxTest {
         Button _linkB2;
 
         bool _canCloseFlyoutIfLostFocus = true;
+        bool _ignoreFlyoutButtonEvents = false;
         ITextSelection _textSelection;
         PointerEventHandler pointerEventHandler;
         PointerDeviceType _pointerDeviceType;
@@ -205,27 +206,27 @@ namespace RichEditBoxTest {
         }
 
         private void BoldTB_Checked(object sender, RoutedEventArgs e) {
-            Document.Selection.CharacterFormat.Bold = FormatEffect.On;
+            if (!_ignoreFlyoutButtonEvents) Document.Selection.CharacterFormat.Bold = FormatEffect.On;
         }
 
         private void BoldTB_Unchecked(object sender, RoutedEventArgs e) {
-            Document.Selection.CharacterFormat.Bold = FormatEffect.Off;
+            if (!_ignoreFlyoutButtonEvents) Document.Selection.CharacterFormat.Bold = FormatEffect.Off;
         }
 
         private void ItalicTB_Checked(object sender, RoutedEventArgs e) {
-            Document.Selection.CharacterFormat.Italic = FormatEffect.On;
+            if (!_ignoreFlyoutButtonEvents) Document.Selection.CharacterFormat.Italic = FormatEffect.On;
         }
 
         private void ItalicTB_Unchecked(object sender, RoutedEventArgs e) {
-            Document.Selection.CharacterFormat.Italic = FormatEffect.Off;
+            if (!_ignoreFlyoutButtonEvents) Document.Selection.CharacterFormat.Italic = FormatEffect.Off;
         }
 
         private void UnderlineTB_Checked(object sender, RoutedEventArgs e) {
-            Document.Selection.CharacterFormat.Underline = UnderlineType.Single;
+            if (!_ignoreFlyoutButtonEvents) Document.Selection.CharacterFormat.Underline = UnderlineType.Single;
         }
 
         private void UnderlineTB_Unchecked(object sender, RoutedEventArgs e) {
-            Document.Selection.CharacterFormat.Underline = UnderlineType.None;
+            if (!_ignoreFlyoutButtonEvents) Document.Selection.CharacterFormat.Underline = UnderlineType.None;
         }
 
         private void LinkTB_Click(object sender, RoutedEventArgs e) {
@@ -316,9 +317,11 @@ namespace RichEditBoxTest {
             if (_textSelection != null && _textSelection.Length != 0) {
                 var format = _textSelection.CharacterFormat;
 
+                _ignoreFlyoutButtonEvents = true;
                 _boldTB.IsChecked = format.Bold == FormatEffect.On;
                 _italicTB.IsChecked = format.Italic == FormatEffect.On;
                 _underlineTB.IsChecked = format.Underline == UnderlineType.Single;
+                _ignoreFlyoutButtonEvents = false;
             }
 
             // Commands
@@ -382,10 +385,10 @@ namespace RichEditBoxTest {
                 };
                 var result = await dlg.ShowAsync();
 
-                range.CharacterFormat = Document.GetDefaultCharacterFormat();
+                // range.CharacterFormat = Document.GetDefaultCharacterFormat();
                 if (result == ContentDialogResult.Primary) {
                     range.CharacterFormat.ForegroundColor = Color.FromArgb(255, 0, 122, 204);
-                    range.CharacterFormat.Underline = UnderlineType.None;
+                    range.CharacterFormat.Outline = FormatEffect.On;
                     range.Link = $"\"https://elor.top\"";
                 }
 
